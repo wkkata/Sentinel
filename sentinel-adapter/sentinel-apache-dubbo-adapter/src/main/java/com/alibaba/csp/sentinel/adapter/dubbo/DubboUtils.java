@@ -15,6 +15,8 @@
  */
 package com.alibaba.csp.sentinel.adapter.dubbo;
 
+import com.alibaba.csp.sentinel.adapter.dubbo.config.DubboConfig;
+import com.alibaba.csp.sentinel.util.StringUtil;
 import org.apache.dubbo.rpc.Invocation;
 import org.apache.dubbo.rpc.Invoker;
 
@@ -32,9 +34,14 @@ public final class DubboUtils {
         return invocation.getAttachment(SENTINEL_DUBBO_APPLICATION_KEY, defaultValue);
     }
 
-    public static String getResourceName(Invoker<?> invoker, Invocation invocation) {
+    public static String getResourceName(Invoker<?> invoker, Invocation invocation){
+        return getResourceName(invoker, invocation, false);
+    }
+
+    public static String getResourceName(Invoker<?> invoker, Invocation invocation, Boolean useGroupAndVersion) {
         StringBuilder buf = new StringBuilder(64);
-        buf.append(invoker.getInterface().getName())
+        String interfaceResource = useGroupAndVersion ? invoker.getUrl().getColonSeparatedKey() : invoker.getInterface().getName();
+        buf.append(interfaceResource)
             .append(":")
             .append(invocation.getMethodName())
             .append("(");
@@ -50,5 +57,23 @@ public final class DubboUtils {
         return buf.toString();
     }
 
-    private DubboUtils() {}
+    public static String getResourceName(Invoker<?> invoker, Invocation invocation, String prefix) {
+        if (StringUtil.isNotBlank(prefix)) {
+            return new StringBuilder(64)
+                    .append(prefix)
+                    .append(getResourceName(invoker, invocation, DubboConfig.getDubboInterfaceGroupAndVersionEnabled()))
+                    .toString();
+        } else {
+            return getResourceName(invoker, invocation, DubboConfig.getDubboInterfaceGroupAndVersionEnabled());
+        }
+    }
+
+
+    public static String getInterfaceName(Invoker invoker) {
+        return DubboConfig.getDubboInterfaceGroupAndVersionEnabled() ? invoker.getUrl().getColonSeparatedKey()
+                : invoker.getInterface().getName();
+    }
+
+    private DubboUtils() {
+    }
 }
